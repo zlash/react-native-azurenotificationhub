@@ -27,233 +27,44 @@ import org.json.JSONException;
 import com.microsoft.windowsazure.notifications.NotificationsHandler;
 
 public class ReactNativeNotificationsHandler extends NotificationsHandler {
-    private static final String LOG_TAG = "AzureNotificationHub";
-    private static final long DEFAULT_VIBRATION = 300L;
+        private static final String LOG_TAG = "AzureNotificationHub";
+        public static final int NOTIFICATION_ID = 1;
+        private NotificationManager mNotificationManager;
+        NotificationCompat.Builder builder;
+        Context ctx;
 
-    private Context context;
-
-    @Override
-    public void onReceive(Context context, Bundle bundle) {
-        this.context = context;
-        sendNotification(bundle);
-    }
-
-    private Class getMainActivityClass() {
-        String packageName = context.getPackageName();
-        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packageName);
-        String className = launchIntent.getComponent().getClassName();
-        try {
-            return Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            return null;
+        @Override
+        public void onReceive(Context context, Bundle bundle) {
+            ctx = context;
+            String nhMessage = bundle.getString("message");
+            Log.i(LOG_TAG, nhMessage);
+            sendNotification(nhMessage);
         }
-    }
 
-    private AlarmManager getAlarmManager() {
-        return (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    }
+        private void sendNotification(String msg) {
 
-    private void sendNotification(Bundle bundle) {
-        try {
-            Class intentClass = getMainActivityClass();
-            if (intentClass == null) {
-                Log.e(LOG_TAG, "No activity class found for the notification");
-                return;
-            }
+            Intent intent = new Intent(ctx, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-            if (bundle.getString("message") == null) {
-                Log.e(LOG_TAG, "No message specified for the notification");
-                return;
-            }
+            mNotificationManager = (NotificationManager)
+                    ctx.getSystemService(Context.NOTIFICATION_SERVICE);
 
-            String notificationIdString = bundle.getString("id");
-            if (notificationIdString == null) {
-                Log.e(LOG_TAG, "No notification ID specified for the notification");
-                return;
-            }
+            PendingIntent contentIntent = PendingIntent.getActivity(ctx, 0,
+                    intent, PendingIntent.FLAG_ONE_SHOT);
 
-            Resources res = context.getResources();
-            String packageName = context.getPackageName();
+            Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            NotificationCompat.Builder mBuilder =
+                    new NotificationCompat.Builder(ctx)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setContentTitle("Notification Hub Demo")
+                            .setStyle(new NotificationCompat.BigTextStyle()
+                                    .bigText(msg))
+                            .setSound(defaultSoundUri)
+                            .setContentText(msg);
 
-            String title = bundle.getString("title");
-            if (title == null) {
-                ApplicationInfo appInfo = context.getApplicationInfo();
-                title = context.getPackageManager().getApplicationLabel(appInfo).toString();
-            }
-
-            NotificationCompat.Builder notification = new NotificationCompat.Builder(context)
-                    .setContentTitle(title)
-                    .setTicker(bundle.getString("ticker"))
-                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(bundle.getBoolean("autoCancel", true));
-
-            String group = bundle.getString("group");
-            if (group != null) {
-                notification.setGroup(group);
-            }
-
-            notification.setContentText(bundle.getString("message"));
-
-            String largeIcon = bundle.getString("largeIcon");
-
-            String subText = bundle.getString("subText");
-
-            if (subText != null) {
-                notification.setSubText(subText);
-            }
-
-            String numberString = bundle.getString("number");
-            if (numberString != null) {
-                notification.setNumber(Integer.parseInt(numberString));
-            }
-
-            int smallIconResId;
-            int largeIconResId;
-
-            String smallIcon = bundle.getString("smallIcon");
-
-            if (smallIcon != null) {
-                smallIconResId = res.getIdentifier(smallIcon, "mipmap", packageName);
-            } else {
-                smallIconResId = res.getIdentifier("ic_notification", "mipmap", packageName);
-            }
-
-            if (smallIconResId == 0) {
-                smallIconResId = res.getIdentifier("ic_launcher", "mipmap", packageName);
-
-                if (smallIconResId == 0) {
-                    smallIconResId = android.R.drawable.ic_dialog_info;
-                }
-            }
-
-            if (largeIcon != null) {
-                largeIconResId = res.getIdentifier(largeIcon, "mipmap", packageName);
-            } else {
-                largeIconResId = res.getIdentifier("ic_launcher", "mipmap", packageName);
-            }
-
-            Bitmap largeIconBitmap = BitmapFactory.decodeResource(res, largeIconResId);
-
-            if (largeIconResId != 0 && (largeIcon != null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)) {
-                notification.setLargeIcon(largeIconBitmap);
-            }
-
-            notification.setSmallIcon(smallIconResId);
-            String bigText = bundle.getString("bigText");
-
-            if (bigText == null) {
-                bigText = bundle.getString("message");
-            }
-
-            notification.setStyle(new NotificationCompat.BigTextStyle().bigText(bigText));
-
-            Intent intent = new Intent(context, intentClass);
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            bundle.putBoolean("userInteraction", true);
-            intent.putExtra("notification", bundle);
-
-            if (!bundle.containsKey("playSound") || bundle.getBoolean("playSound")) {
-                Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                String soundName = bundle.getString("soundName");
-                if (soundName != null) {
-                    if (!"default".equalsIgnoreCase(soundName)) {
-
-                        // sound name can be full filename, or just the resource name.
-                        // So the strings 'my_sound.mp3' AND 'my_sound' are accepted
-                        // The reason is to make the iOS and android javascript interfaces compatible
-
-                        int resId;
-                        if (context.getResources().getIdentifier(soundName, "raw", context.getPackageName()) != 0) {
-                            resId = context.getResources().getIdentifier(soundName, "raw", context.getPackageName());
-                        } else {
-                            soundName = soundName.substring(0, soundName.lastIndexOf('.'));
-                            resId = context.getResources().getIdentifier(soundName, "raw", context.getPackageName());
-                        }
-
-                        soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + resId);
-                    }
-                }
-                notification.setSound(soundUri);
-            }
-
-            if (bundle.containsKey("ongoing") || bundle.getBoolean("ongoing")) {
-                notification.setOngoing(bundle.getBoolean("ongoing"));
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                notification.setCategory(NotificationCompat.CATEGORY_CALL);
-
-                String color = bundle.getString("color");
-                if (color != null) {
-                    notification.setColor(Color.parseColor(color));
-                }
-            }
-
-            int notificationID = Integer.parseInt(notificationIdString);
-
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, notificationID, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT);
-
-            NotificationManager notificationManager = notificationManager();
-
-            notification.setContentIntent(pendingIntent);
-
-            if (!bundle.containsKey("vibrate") || bundle.getBoolean("vibrate")) {
-                long vibration = bundle.containsKey("vibration") ? (long) bundle.getDouble("vibration") : DEFAULT_VIBRATION;
-                if (vibration == 0)
-                    vibration = DEFAULT_VIBRATION;
-                notification.setVibrate(new long[]{0, vibration});
-            }
-
-            JSONArray actionsArray = null;
-            try {
-                actionsArray = bundle.getString("actions") != null ? new JSONArray(bundle.getString("actions")) : null;
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, "Exception while converting actions to JSON object.", e);
-            }
-
-            if (actionsArray != null) {
-                // No icon for now. The icon value of 0 shows no icon.
-                int icon = 0;
-
-                // Add button for each actions.
-                for (int i = 0; i < actionsArray.length(); i++) {
-                    String action;
-                    try {
-                        action = actionsArray.getString(i);
-                    } catch (JSONException e) {
-                        Log.e(LOG_TAG, "Exception while getting action from actionsArray.", e);
-                        continue;
-                    }
-
-                    Intent actionIntent = new Intent();
-                    actionIntent.setAction(context.getPackageName() + "." + action);
-                    // Add "action" for later identifying which button gets pressed.
-                    bundle.putString("action", action);
-                    actionIntent.putExtra("notification", bundle);
-                    PendingIntent pendingActionIntent = PendingIntent.getBroadcast(context, notificationID, actionIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT);
-                    notification.addAction(icon, action, pendingActionIntent);
-                }
-            }
-
-            Notification info = notification.build();
-            info.defaults |= Notification.DEFAULT_LIGHTS;
-
-            if (bundle.containsKey("tag")) {
-                String tag = bundle.getString("tag");
-                notificationManager.notify(tag, notificationID, info);
-            } else {
-                notificationManager.notify(notificationID, info);
-            }
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "failed to send push notification", e);
+            mBuilder.setContentIntent(contentIntent);
+            mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
         }
-    }
-
-    private NotificationManager notificationManager() {
-        return (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-    }
+    
+    
 }
