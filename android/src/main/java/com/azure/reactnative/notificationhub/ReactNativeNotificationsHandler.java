@@ -1,12 +1,18 @@
-    import android.app.NotificationManager;
-    import android.app.PendingIntent;
-    import android.content.Context;
-    import android.content.Intent;
-    import android.media.RingtoneManager;
-    import android.net.Uri;
-    import android.os.Bundle;
-    import android.support.v4.app.NotificationCompat;
-    import com.microsoft.windowsazure.notifications.NotificationsHandler;
+
+package com.azure.reactnative.notificationhub;
+
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
+
+import android.util.Log;
+
+import com.microsoft.windowsazure.notifications.NotificationsHandler;
 
 public class ReactNativeNotificationsHandler extends NotificationsHandler {
         private static final String LOG_TAG = "AzureNotificationHub";
@@ -37,8 +43,8 @@ public class ReactNativeNotificationsHandler extends NotificationsHandler {
             Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             NotificationCompat.Builder mBuilder =
                     new NotificationCompat.Builder(ctx)
-                            .setSmallIcon(R.mipmap.ic_launcher)
-                            .setContentTitle("Notification Hub Demo")
+                            .setSmallIcon(android.R.drawable.ic_dialog_info)
+                            .setContentTitle("TITLE")
                             .setStyle(new NotificationCompat.BigTextStyle()
                                     .bigText(msg))
                             .setSound(defaultSoundUri)
