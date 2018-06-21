@@ -30,8 +30,8 @@ public class ReactNativeNotificationsHandler extends NotificationsHandler {
         }
 
         private Class getMainActivityClass() {
-                String packageName = context.getPackageName();
-                Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packageName);
+                String packageName = ctx.getPackageName();
+                Intent launchIntent = ctx.getPackageManager().getLaunchIntentForPackage(packageName);
                 String className = launchIntent.getComponent().getClassName();
                 try {
                     return Class.forName(className);
